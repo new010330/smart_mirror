@@ -1,0 +1,12 @@
+autumn__deep
+autumn__soft
+autumn_warm
+spring_bright
+spring_light
+spring_warm
+summer_cool
+summer_light
+summer_soft
+winter__bright
+winter_cool
+winter_deep
