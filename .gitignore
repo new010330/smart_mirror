@@ -1,3 +1,23 @@
 # 모델 파일 제외
 saved_models/*
 !saved_models/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+
+# Django media/static
+/media/
+staticfiles/
+
+# Virtual environment
+venv/
+.env
+
+# 모델 파일
+*.h5
+*.pth
+
+# VSCode
+.vscode/

@@ -33,6 +33,7 @@ INSTALLED_APPS = [
 
     'rest_framework',   # 추가
     'api',              # 추가 (네가 만든 앱 이름)
+    'skin_status',
 ]
 
 MIDDLEWARE = [
