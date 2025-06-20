@@ -1,17 +1,20 @@
+# face_analysis/utils.py
 import cv2
 
-# OpenCV 얼굴 인식용 haarcascade 로딩(최초 1회)
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-
 def is_face_present(image):
-    faces = face_cascade.detectMultiScale(image, scaleFactor=1.1, minNeighbors=5)
+    # 예시: haarcascade 사용 (실제 프로젝트는 dlib, mediapipe 등 사용 권장)
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
     return len(faces) > 0
 
-def is_blurry(image, threshold=100.0):
+def is_blurry(image, threshold=4.5):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    lap_var = cv2.Laplacian(gray, cv2.CV_64F).var()
-    return lap_var < threshold
+    var = cv2.Laplacian(gray, cv2.CV_64F).var()
+    print(f"[DEBUG] Laplacian Variance: {var:.2f}, Blurry: {var < threshold}")
+    return var < threshold
 
 def is_frontal_face(image):
-    # 실제 서비스시 dlib/mediapipe로 각도 체크 권장. 여기서는 True로 고정
-    return True
+    # 실제로는 정면 얼굴 각도 판단 라이브러리 활용
+    # 예시로 "얼굴 존재"로만 단순화
+    return is_face_present(image)

@@ -8,7 +8,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),              # 퍼스널컬러 예측 API
-    path('analyze/', include('skin_status.urls')),  # 피부 상태 분석 API
+    path('api/analyze/', include('skin_status.face_analysis.urls')),  # 피부 상태 분석 API
     
 ]
 

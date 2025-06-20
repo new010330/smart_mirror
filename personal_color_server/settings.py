@@ -23,7 +23,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'api',
-    'skin_status',
+    'skin_status.face_analysis',
 ]
 
 # 미들웨어
