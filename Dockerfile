@@ -39,4 +39,4 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
 # Run Django server (assuming personal_color_server is Django-based)
-CMD ["python", "personal_color_server/manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
