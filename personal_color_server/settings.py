@@ -8,7 +8,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-$-l1%1#^qglv-+hlwgqz*@n375)z&pquv1h2om-bin6a%sldpk'
 
 DEBUG = True
-ALLOWED_HOSTS = []  # 개발 시엔 빈 배열, 배포 시엔 도메인 추가
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '192.168.219.200',  # 현재 서버 IP
+    'python-ai-app',    # Docker 컨테이너 이름
+    '*'  # 개발 환경에서 모든 호스트 허용
+]  # 개발 시엔 빈 배열, 배포 시엔 도메인 추가
 
 # 앱 등록
 INSTALLED_APPS = [
