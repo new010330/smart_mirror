@@ -45,6 +45,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Create network if not exists
+        run: |
+          docker network create smart-mirror-network || true
+
       - name: Build Docker image
         run: |
           docker build -t python-ai-app:latest .
@@ -59,11 +63,16 @@ jobs:
         run: |
           docker run -d \
             --name python-ai-app \
+            --network smart-mirror-network \
             -p 8000:8000 \
             --restart unless-stopped \
             -v $(pwd)/data:/app/data \
             -v $(pwd)/saved_models:/app/saved_models \
             python-ai-app:latest
+
+      - name: Connect frontend to network
+        run: |
+          docker network connect smart-mirror-network my-nextjs-app || true
 
       - name: Health check
         run: |
