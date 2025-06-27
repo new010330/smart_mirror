@@ -8,7 +8,7 @@ from django.conf import settings
 
 from .utils import is_face_present, is_blurry, is_frontal_face
 from .level_model import predict_acne_level
-from api.utils import predict_personal_color_from_path
+from api.predictor import predict_personal_color_from_path
 
 import numpy as np
 import cv2
