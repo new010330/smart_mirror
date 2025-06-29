@@ -10,13 +10,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent  # face_analysis 기준
 model_path = os.path.join(BASE_DIR, 'skin_status', 'mobilenet_skin_best.pth')
 num_classes = 6  # 정상(0) + 1~5레벨 = 6개
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# ✅ GPU 사용 불가 환경이므로 무조건 CPU 고정
+device = torch.device("cpu")
+
+# ✅ 모델 정의 및 가중치 로드 (CPU 전용)
 model = models.mobilenet_v2(weights=None)
 model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
 model.load_state_dict(torch.load(model_path, map_location=device))
 model = model.to(device)
 model.eval()
 
+# ✅ 전처리 정의
 transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((224, 224)),
@@ -24,9 +28,10 @@ transform = transforms.Compose([
     transforms.Normalize([0.5]*3, [0.5]*3)
 ])
 
+# ✅ 추론 함수
 def predict_acne_level(cv2_img):
     rgb_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
-    input_tensor = transform(rgb_img).unsqueeze(0).to(device)
+    input_tensor = transform(rgb_img).unsqueeze(0).to(device)  # to(device)는 CPU로 고정됨
     with torch.no_grad():
         outputs = model(input_tensor)
         probs = torch.softmax(outputs, dim=1)

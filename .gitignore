@@ -3,23 +3,36 @@ __pycache__/
 *.py[cod]
 *.sqlite3
 
-# ✅ 이미지 데이터 및 결과 폴더
-data/autumn_*/
-data/spring_*/
-data/summer_*/
-data/winter_*/
-check_preprocessed/
-media/
+# ✅ Jupyter notebook 체크포인트
+.ipynb_checkpoints/
 
-# ✅ 테스트 이미지
-test*.jpg
-test*.jpeg
-test*.png
-
-# ✅ 개발 환경 및 설정
+# ✅ 가상환경 및 개발 설정
 venv/
 .env
 .vscode/
+.idea/
 
-# ✅ Django 정적 파일
+# ✅ 이미지 데이터 폴더 (전체 무시)
+data/
+media/
+
+# ✅ Django static 파일 (collectstatic 결과물)
 staticfiles/
+static/
+
+# ✅ 기타 시스템 파일
+.DS_Store
+Thumbs.db
+
+# ✅ Pip & Conda 관련 캐시
+*.egg-info/
+.eggs/
+*.conda
+*.ipynb_checkpoints
+*.log
+
+# ✅ PyTorch Lightning 체크포인트 파일 (사용 시)
+*.ckpt
+
+# ✅ VSCode settings
+*.code-workspace

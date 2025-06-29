@@ -57,24 +57,33 @@ def analyze_faces_and_acne_level(request):
             selected_filename = filename
 
     if selected_image is None:
-        return Response({"detail": "5장 모두에서 적합한 얼굴 사진을 찾지 못했습니다.", "results": results}, status=422)
+        return Response({
+            "detail": "5장 모두에서 적합한 얼굴 사진을 찾지 못했습니다.",
+            "results": results
+        }, status=422)
 
     selected_filepath = os.path.join(upload_dir, selected_filename)
 
+    if not os.path.exists(selected_filepath):
+        return Response({"error": "선택된 이미지 파일이 존재하지 않습니다."}, status=500)
+
     try:
         acne_level, prob = predict_acne_level(selected_image)
+        print(f"[INFO] 여드름 분석 결과 - level: {acne_level}, conf: {prob}")
     except Exception as e:
         return Response({"error": f"피부 분석 오류: {str(e)}"}, status=500)
 
     try:
         personal_color, pc_conf = predict_personal_color_from_path(selected_filepath)
+        print(f"[INFO] 퍼스널컬러 결과 - {personal_color}, conf: {pc_conf}")
     except Exception as e:
+        print(f"[ERROR] personal_color 예측 실패: {str(e)}")
         personal_color, pc_conf = None, None
 
     return Response({
         "acne_level": int(acne_level),
         "confidence": float(prob),
         "skin_lv": "정상 (여드름 없음)" if acne_level == 0 else f"{acne_level}",
-        "personal_color": personal_color,
+        "personal_color": personal_color if personal_color else "예측 실패",
         "pc_confidence": f"{pc_conf:.2f}%" if pc_conf is not None else "예측 실패",
     }, status=200)

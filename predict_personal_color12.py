@@ -23,13 +23,14 @@ def load_model_and_classes():
     with open(CLASS_PATH, "r", encoding="utf-8") as f:
         class_names = [line.strip() for line in f]
     model.classifier[1] = nn.Linear(model.classifier[1].in_features, len(class_names))
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load(MODEL_PATH, map_location='cpu'))
     model.eval()
+    model.to('cpu')  # ✅ 명시적으로 CPU에 할당
 
     print(f"✅ 클래스 목록 로드 완료: {class_names}")
     return model, class_names
 
-# ✅ 얼굴 crop 함수 (MediaPipe 기반)
+# ✅ 얼굴 crop 함수 (MediaPipe 사용)
 def crop_face(img):
     import mediapipe as mp
     mp_face_detection = mp.solutions.face_detection
@@ -99,8 +100,8 @@ def predict_personal_color(image_path, model, class_names, debug=False):
     img = cv2.resize(img, (224, 224))
     img = img.astype(np.float32) / 255.0
     img = (img - 0.5) / 0.5  # Normalize to [-1, 1]
-    img = np.transpose(img, (2, 0, 1))  # HWC -> CHW
-    img_tensor = torch.tensor(img).unsqueeze(0)
+    img = np.transpose(img, (2, 0, 1))  # HWC → CHW
+    img_tensor = torch.tensor(img).unsqueeze(0).to('cpu')  # ✅ CPU 명시
 
     with torch.no_grad():
         outputs = model(img_tensor)
@@ -119,9 +120,9 @@ def predict_personal_color(image_path, model, class_names, debug=False):
 
     return predicted_class, confidence
 
-# ✅ 실행부
+# ✅ 실행부 테스트
 if __name__ == '__main__':
-    test_image = 'test12.jpg'
+    test_image = 'test33.jpg'
     print(f"📷 예측 시작: {test_image}")
     model, class_names = load_model_and_classes()
     result, confidence = predict_personal_color(test_image, model, class_names, debug=True)

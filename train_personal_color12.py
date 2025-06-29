@@ -3,10 +3,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import models, transforms, datasets
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from sklearn.utils.class_weight import compute_class_weight
 import numpy as np
-from datetime import datetime
 
 # ✅ 경로 설정
 DATA_DIR = 'data'
@@ -58,7 +57,15 @@ train_dataset, val_dataset = torch.utils.data.random_split(full_dataset, [train_
 train_dataset.dataset.transform = train_transform
 val_dataset.dataset.transform = val_transform
 
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+# ✅ oversampling을 위한 sampler 생성
+autumn_classes = ['autumn_deep', 'autumn_soft', 'autumn_warm']
+autumn_indices = [i for i, name in enumerate(class_names) if name in autumn_classes]
+train_labels = [full_dataset[i][1] for i in train_dataset.indices]
+sample_weights = [2.0 if label in autumn_indices else 1.0 for label in train_labels]
+sample_weights = torch.DoubleTensor(sample_weights)
+sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
+
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=sampler)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
 # ✅ 클래스 가중치 계산
@@ -66,7 +73,7 @@ labels = [label for _, label in train_dataset]
 class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
 class_weights_tensor = torch.tensor(class_weights, dtype=torch.float).to(DEVICE)
 
-# ✅ 모델 생성 (EfficientNetB0 기반)
+# ✅ 모델 생성
 model = models.efficientnet_b0(pretrained=True)
 model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
 model = model.to(DEVICE)

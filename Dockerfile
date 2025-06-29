@@ -1,10 +1,10 @@
-# Use an official Python runtime as a parent image
+# Use an official Python 3.11 slim image as base
 FROM python:3.11-slim
 
-# Set the working directory in the container
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies for TensorFlow and image processing
+# Install system-level dependencies for image processing and TensorFlow
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -14,32 +14,30 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy all requirements files
+# Copy requirements files
 COPY requirements.txt .
 COPY skin_status/requirements.txt ./skin_status/
 COPY personal_color_server/requirements.txt ./personal_color_server/
 
-# Install main requirements
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Install skin_status requirements
 RUN pip install --no-cache-dir -r skin_status/requirements.txt
-
-# Install personal_color_server requirements (including TensorFlow)
 RUN pip install --no-cache-dir -r personal_color_server/requirements.txt
 
-# Copy the rest of the application code
+# Copy application source code
 COPY . .
 
-# Copy model file to the correct location (if it's in saved_models)
+# Copy model files to appropriate locations
 COPY saved_models/mobilenet_skin_best.pth ./skin_status/mobilenet_skin_best.pth
+COPY saved_models/final_model_efficientnet.pt ./saved_models/final_model_efficientnet.pt
+COPY saved_models/class_names.txt ./saved_models/class_names.txt
 
-# Make port 8000 available to the world outside this container
+# Expose port 8000 for Django development server
 EXPOSE 8000
 
-# Define environment variable
+# Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Run Django server (assuming personal_color_server is Django-based)
+# Start Django development server
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
