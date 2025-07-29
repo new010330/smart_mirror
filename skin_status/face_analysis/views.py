@@ -1,5 +1,3 @@
-# === 2. face_analysis/views.py ===
-
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
@@ -14,6 +12,31 @@ import numpy as np
 import cv2
 import os
 from datetime import datetime
+import mediapipe as mp
+
+# mediapipe 얼굴 탐지 초기화
+mp_face_detection = mp.solutions.face_detection
+face_detection = mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5)
+
+def crop_face_from_image(image: np.ndarray) -> np.ndarray:
+    """이미지에서 얼굴 영역만 잘라냄"""
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    results = face_detection.process(image_rgb)
+
+    if not results.detections:
+        raise ValueError("얼굴을 찾지 못했습니다.")
+
+    # 가장 첫 번째 얼굴만 사용
+    detection = results.detections[0]
+    bboxC = detection.location_data.relative_bounding_box
+    h, w, _ = image.shape
+
+    x = max(int(bboxC.xmin * w), 0)
+    y = max(int(bboxC.ymin * h), 0)
+    x2 = min(int((bboxC.xmin + bboxC.width) * w), w)
+    y2 = min(int((bboxC.ymin + bboxC.height) * h), h)
+
+    return image[y:y2, x:x2]
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
@@ -27,8 +50,7 @@ def analyze_faces_and_acne_level(request):
 
     prefix = datetime.now().strftime('%Y%m%d_%H%M%S')
     results = []
-    selected_image = None
-    selected_filename = None
+    analysis_inputs = []
 
     for idx, img_file in enumerate(images):
         img_array = np.frombuffer(img_file.read(), np.uint8)
@@ -50,38 +72,57 @@ def analyze_faces_and_acne_level(request):
         }
         results.append(result)
 
-        if selected_image is None and face_ok and frontal_ok:
-            selected_image = image
-            selected_filename = filename
+        if face_ok and frontal_ok:
+            try:
+                face_crop = crop_face_from_image(image)
+                analysis_inputs.append((face_crop, filepath))
+            except Exception as e:
+                print(f"[WARN] 얼굴 추출 실패: {str(e)}")
 
-    if selected_image is None:
+    if not analysis_inputs:
         return Response({
-            "detail": "5장 모두에서 적합한 얼굴 사진을 찾지 못했습니다.",
+            "detail": "적합한 얼굴 사진이 없습니다.",
             "results": results
         }, status=422)
 
-    selected_filepath = os.path.join(upload_dir, selected_filename)
+    # 피부 분석: 가장 낮은 레벨 (가장 양호한 상태)
+    best_level = None
+    best_conf = 0.0
+    best_image = None
+    best_path = None
 
-    if not os.path.exists(selected_filepath):
-        return Response({"error": "선택된 이미지 파일이 존재하지 않습니다."}, status=500)
+    for face_image, filepath in analysis_inputs:
+        try:
+            level, prob = predict_acne_level(face_image)
+            print(f"[INFO] 예측 결과: level {level}, confidence {prob}")
+            if best_level is None or level < best_level or (level == best_level and prob > best_conf):
+                best_level = level
+                best_conf = prob
+                best_image = face_image
+                best_path = filepath
+        except Exception as e:
+            print(f"[ERROR] 피부 분석 실패: {str(e)}")
 
+    # 퍼스널 컬러 분석
     try:
-        acne_level, prob = predict_acne_level(selected_image)
-        print(f"[INFO] 여드름 분석 결과 - level: {acne_level}, conf: {prob}")
+        personal_color, pc_conf = predict_personal_color_from_path(best_path)
+        print(f"[INFO] 퍼스널컬러: {personal_color}, conf: {pc_conf}")
     except Exception as e:
-        return Response({"error": f"피부 분석 오류: {str(e)}"}, status=500)
-
-    try:
-        personal_color, pc_conf = predict_personal_color_from_path(selected_filepath)
-        print(f"[INFO] 퍼스널컬러 결과 - {personal_color}, conf: {pc_conf}")
-    except Exception as e:
-        print(f"[ERROR] personal_color 예측 실패: {str(e)}")
+        print(f"[ERROR] 퍼스널컬러 예측 실패: {str(e)}")
         personal_color, pc_conf = None, None
 
+    # 업로드 이미지 삭제
+    try:
+        for f in os.listdir(upload_dir):
+            os.remove(os.path.join(upload_dir, f))
+    except Exception as e:
+        print(f"[WARN] 이미지 삭제 실패: {str(e)}")
+
     return Response({
-        "acne_level": int(acne_level),
-        "confidence": float(prob),
-        "skin_lv": "정상 (여드름 없음)" if acne_level == 0 else f"{acne_level}",
+        "acne_level": int(best_level),
+        "confidence": float(best_conf),
+        "skin_lv": "정상 (여드름 없음)" if best_level == 0 else f"{best_level}",
         "personal_color": personal_color if personal_color else "예측 실패",
         "pc_confidence": f"{pc_conf:.2f}%" if pc_conf is not None else "예측 실패",
+        "details": results
     }, status=200)
